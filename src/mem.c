@@ -70,7 +70,7 @@ void* mem_alloc(size_t size) {
     // Parcourir la liste chaînée
     while (current_node != NULL) {
         // Vérifier si la taille du maillon actuel est inférieure ou égale à (size + sizeof(struct fb))
-        if (current_node->size <= (size + sizeof(struct fb))) {
+        if (current_node->size >= (size + sizeof(struct fb))) {
 
             // Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du maillon actuel
             char* new_address = (char*)current_node + (size + sizeof(struct fb));

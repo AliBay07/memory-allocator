@@ -57,11 +57,45 @@ void mem_init() {
 /**
  * Allocate a bloc of the given size.
 **/
-void *mem_alloc(size_t size) {
-	    
-	assert(! "NOT IMPLEMENTED !");
+void* mem_alloc(size_t size) {
+    // Récupérer le premier maillon de la liste chaînée
+    struct fb* head = info->first;
+    
+    // Initialiser le pointeur courant au premier maillon
+    struct fb* current_node = head;
+    
+    // Initialiser le pointeur précédent avec le premier maillon
+    struct fb* previous_node = current_node;
+
+    // Parcourir la liste chaînée
+    while (current_node != NULL) {
+        // Vérifier si la taille du maillon actuel est inférieure ou égale à (size + sizeof(struct fb))
+        if (current_node->size <= (size + sizeof(struct fb))) {
+
+            // Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du maillon actuel
+            char* new_address = (char*)current_node + (size + sizeof(struct fb));
+            
+            // Mettre à jour le pointeur current_node avec la nouvelle adresse
+            current_node = (struct fb*)new_address;
+
+            // Mettre à jour la taille du nouveau maillon current_node
+            current_node->size -= (size + sizeof(struct fb));
+
+            // Retourner un pointeur vers le maillon précédent
+            return (void*)previous_node;
+        }
+
+        // Mettre à jour le pointeur précédent avec le pointeur courant
+        previous_node = current_node;
+        
+        // Passer au maillon suivant dans la liste chaînée
+        current_node = current_node->next;
+    }
+
+    // Si aucune condition n'est satisfaite, retourner NULL
     return NULL;
 }
+
 
 //-------------------------------------------------------------
 // mem_get_size

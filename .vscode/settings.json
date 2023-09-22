@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "assert.h": "c",
+        "stdio.h": "c",
+        "mem_os.h": "c"
+    }
+}

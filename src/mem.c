@@ -4,10 +4,23 @@
 // Cursus : Université Grenoble Alpes - UFRIM²AG - Master 1 - Informatique
 //------------------------------------------------------------------------------
 
-#include "mem.h"
-#include "mem_space.h"
-#include "mem_os.h"
+#include "../headers/mem.h"
+#include "../src/mem_space.c"
+#include "../headers/mem_os.h"
 #include <assert.h>
+
+/* fb pour free block */
+struct fb { 
+	size_t size ;
+	struct fb *next ;
+};
+
+// structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon libre 
+struct info_alloc {
+	struct fb* first;
+};
+
+struct info_alloc* info;
 
 //-------------------------------------------------------------
 // mem_init
@@ -17,9 +30,26 @@
  * If already init it will re-init.
 **/
 void mem_init() {
-	//TODO: implement
-	assert(! "NOT IMPLEMENTED !");
+
+    // Récupérer l'adresse de la mémoire la convertir en un pointeur vers struct info_alloc
+    info = (struct info_alloc*)mem_space_get_addr();
+
+    // Calculer l'adresse de init_fb en fonction de la taille de struct info_alloc
+    struct fb* init_fb = (struct fb*)((char*)info + sizeof(struct info_alloc));
+
+    // Initialiser le champ next de init_fb à NULL
+    init_fb->next = NULL;
+
+    // Calculer la taille de init_fb en fonction de la taille totale de mémoire disponible
+    // moins la taille de struct info_alloc et struct fb
+    init_fb->size = mem_space_get_size() - (sizeof(struct info_alloc) + sizeof(struct fb));
+
+    // Faire pointer info->first vers init_fb
+    info->first = init_fb;
+
+    // assert(!"NON IMPLEMENTÉ !");
 }
+
 
 //-------------------------------------------------------------
 // mem_alloc
@@ -28,7 +58,7 @@ void mem_init() {
  * Allocate a bloc of the given size.
 **/
 void *mem_alloc(size_t size) {
-	//TODO: implement
+	    
 	assert(! "NOT IMPLEMENTED !");
     return NULL;
 }

@@ -72,6 +72,9 @@ void* mem_alloc(size_t size) {
     // Initialiser le pointeur précédent avec le premier maillon
     struct fb* previous_node = current_node;
 
+	//Initialiser le pointeur vers le bloc à allouer
+	struct bb* allocated_block = NULL;
+
     // Parcourir la liste chaînée
     while (current_node != NULL) {
         // Vérifier si la taille du maillon actuel est inférieure ou égale à (size + sizeof(struct fb))
@@ -79,7 +82,15 @@ void* mem_alloc(size_t size) {
 
             // Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du maillon actuel
             char* new_address = (char*)current_node + (size + sizeof(struct fb));
-            
+
+            //Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du pointeur vers la zone allouée
+			char* bb_address = (char*)current_node + (size + sizeof(struct bb));
+
+			// Mettre à jour le pointeur allocated_block avec la nouvelle adresse
+			allocated_block = (struct bb*)new_address;
+
+			// Mettre à jour la taille du pointeur de la zone allouée
+			allocated_block->size = (size + sizeof(struct bb));
             // Mettre à jour le pointeur current_node avec la nouvelle adresse
             current_node = (struct fb*)new_address;
 
@@ -89,6 +100,7 @@ void* mem_alloc(size_t size) {
             // Retourner un pointeur vers le maillon précédent
             return (void*)previous_node;
         }
+		//Initialiser le pointeur de la zone occupée
 
         // Mettre à jour le pointeur précédent avec le pointeur courant
         previous_node = current_node;
@@ -108,7 +120,7 @@ void* mem_alloc(size_t size) {
 size_t mem_get_size(void *zone) {
     //on vérifie que la zone n'est pas NULL
     if (zone != NULL) {
-        return (size_t)*((size_t *)zone);
+        return sizeof(*zone);
     }
 	else{
 		return 0;
@@ -122,7 +134,53 @@ size_t mem_get_size(void *zone) {
  * Free an allocaetd bloc.
 **/
 void mem_free(void *zone) {
-    //TODO: implement
+	//on récupère la 1er maillon de la liste chaînée
+    struct fb* head = info->first;
+	struct fb* tmp = head;
+	int free =0;
+	printf("knslvncd");
+	//parcours de la liste pour vérifier que la zone est bien occupée
+	while(tmp->next !=NULL)
+	{
+		if(zone != tmp)
+		{
+			tmp = tmp->next;
+		}
+		else
+		{
+			printf("cette adresse est déjà libre");
+			free = 1;
+			break;
+		}
+	}
+
+	//parcours de la liste pour ajouter un maillon à la liste (soit trier en même temps soit trier à la toute fin)
+	//penser à fusionner les zones
+	tmp = head;
+	struct fb* new_node;
+	struct fb* tmp2 = tmp->next;
+	if(free = 0)
+	{
+		while(tmp->next!=NULL)
+		{
+			//ajout d'un maillon dans la liste de zones libres
+			if((char*)zone < (char*)tmp)
+			{
+				tmp->next = new_node;
+				new_node->next = tmp2;
+				new_node->size = mem_get_size(zone)+sizeof(struct bb);
+			}
+
+		}
+		if((char*)zone > (char*)tmp)
+		{
+			tmp->next = new_node;
+			new_node->next = NULL;
+			new_node->size = mem_get_size(zone)+sizeof(struct bb);
+		}
+	}
+
+	//zone de fusion
 	assert(! "NOT IMPLEMENTED !");
 }
 

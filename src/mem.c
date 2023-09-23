@@ -16,16 +16,16 @@ struct fb
 	struct fb *next;
 };
 
-// structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon libre
-struct info_alloc
-{
-	struct fb *first;
-};
-
 // structure utilisée pour gérer les blocs occupés
 struct bb
 {
 	size_t size;
+};
+
+// structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon libre
+struct info_alloc
+{
+	struct fb *first;
 };
 
 struct info_alloc *info;
@@ -39,7 +39,6 @@ struct info_alloc *info;
  **/
 void mem_init()
 {
-
 	// Récupérer l'adresse de la mémoire la convertir en un pointeur vers struct info_alloc
 	info = (struct info_alloc *)mem_space_get_addr();
 
@@ -67,12 +66,12 @@ void mem_init()
  **/
 void *mem_alloc(size_t size)
 {
-
+	printf("Adresse du pointeur tmp : %p\n", (char *)info->first);
 	// Initialiser le pointeur courant au premier maillon
 	struct fb *current_node = info->first;
-
+	printf("Adresse du pointeur info->first avant alloc: %p\n", (char *)info->first);
 	size_t total_size = size + sizeof(struct bb);
-
+	
 	if (total_size >= sizeof(struct fb))
 	{
 
@@ -83,7 +82,7 @@ void *mem_alloc(size_t size)
 			// Vérifier si la taille du maillon actuel est inférieure ou égale à total_size)
 			if (current_node->size >= total_size)
 			{
-
+				
 				size_t remaining_size = current_node->size - total_size;
 
 				// Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du maillon actuel
@@ -105,7 +104,7 @@ void *mem_alloc(size_t size)
 
 				// to update later when free is implemented
 				info->first = (struct fb *)new_address_fb;
-
+				printf("Adresse du pointeur info->first après alloc: %p\n", (char *)info->first);
 				// Retourner un pointeur vers le maillon précédent
 				return (void *)adresse_allouer;
 			}
@@ -113,7 +112,10 @@ void *mem_alloc(size_t size)
 			// Passer au maillon suivant dans la liste chaînée
 			current_node = current_node->next;
 		}
+		
 	}
+
+
 
 	// Si aucune condition n'est satisfaite, retourner NULL
 	return NULL;
@@ -127,7 +129,7 @@ size_t mem_get_size(void *zone)
 	// on vérifie que la zone n'est pas NULL
 	if (zone != NULL)
 	{
-		return sizeof(*zone);
+		return sizeof((char*)zone);
 	}
 	else
 	{
@@ -144,52 +146,94 @@ size_t mem_get_size(void *zone)
 void mem_free(void *zone)
 {
 	// on récupère la 1er maillon de la liste chaînée
-	struct fb *head = info->first;
-	struct fb *tmp = head;
+	struct fb *tmp = info->first;
 	int free = 0;
-	printf("knslvncd");
+	printf("1er affichage adresse de zone %p \n",zone); //adresse
+	
+	//printf("%p \n",zone); //adresse
 	// parcours de la liste pour vérifier que la zone est bien occupée
+	if(tmp->next == NULL)
+	{
+		printf("2e affichage adresse de tmp %p \n",tmp);
+		if ((char*) zone == (char *)tmp)
+		{
+			printf("cette adresse est déjà libre");
+			free = 1;
+		}
+	}
+
 	while (tmp->next != NULL)
 	{
-		if (zone != tmp)
+		if ((char*) zone != (char *)tmp)
 		{
 			tmp = tmp->next;
 		}
 		else
 		{
-			printf("cette adresse est déjà libre");
+			printf("Cette adresse est déjà libre");
 			free = 1;
 			break;
 		}
 	}
-
-	// parcours de la liste pour ajouter un maillon à la liste (soit trier en même temps soit trier à la toute fin)
-	// penser à fusionner les zones
-	tmp = head;
-	struct fb *new_node;
-	struct fb *tmp2 = tmp->next;
-	if (free = 0)
+	if(free == 0)
 	{
-		while (tmp->next != NULL)
+		struct fb* current = (struct fb *)zone;
+		printf("3e affichage adresse de current initialisation %p \n",current);
+		current->size = mem_get_size(zone)+sizeof(struct bb*);
+		struct fb* tmphead = info->first;
+
+		//si 1er bloc adresse après init probablement inutile
+		if(/*current = 1/*changer condition*/free == 1)
 		{
-			// ajout d'un maillon dans la liste de zones libres
-			if ((char *)zone < (char *)tmp)
+			info->first = current;
+			current->next = tmphead;
+			printf("4e affichage adresse de current si c'est le 1er bloc %p \n",current);
+		}
+
+		else
+		{
+			//si ajout en plein milieu de la chaîne avec 1 seul free block
+ 			if(tmphead->next == NULL)
 			{
-				tmp->next = new_node;
-				new_node->next = tmp2;
-				new_node->size = mem_get_size(zone) + sizeof(struct bb);
+				info->first = current;
+				current->next = tmphead;
+				printf("5e affichage adresse de current si 1 seul free block %p \n",current);
+			}
+			//si ajout en plein milieu de la chaîne
+			else if(tmphead->next!=NULL)
+			{
+				while(tmphead->next!=NULL)
+				{
+					if((char*)current < (char*)tmphead->next)
+					{
+						current->next = tmphead->next;
+						tmphead->next = current;
+						printf("6e affichage adresse de current si en plein milieu %p \n",current);
+						break;
+					}
+					else
+					{
+						tmphead = tmphead->next;
+					}
+				}
+			}
+			
+			//si bloc après le dernier maillon
+			else
+			{
+				if((char*)current > (char*)tmphead)
+					{
+						current->next = NULL;
+						tmphead->next = current;
+						printf("7e affichage adresse de current si block après dernier fb %p \n",current);
+					}
 			}
 		}
-		if ((char *)zone > (char *)tmp)
-		{
-			tmp->next = new_node;
-			new_node->next = NULL;
-			new_node->size = mem_get_size(zone) + sizeof(struct bb);
-		}
 	}
+	
 
 	// zone de fusion
-	assert(!"NOT IMPLEMENTED !");
+	//assert(!"NOT IMPLEMENTED !");
 }
 
 //-------------------------------------------------------------

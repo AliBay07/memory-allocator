@@ -20,6 +20,11 @@ struct info_alloc {
 	struct fb* first;
 };
 
+//structure utilisée pour gérer les blocs occupés
+struct bb {
+	size_t size;
+};
+
 struct info_alloc* info;
 
 //-------------------------------------------------------------
@@ -67,6 +72,9 @@ void* mem_alloc(size_t size) {
     // Initialiser le pointeur précédent avec le premier maillon
     struct fb* previous_node = current_node;
 
+	//Initialiser le pointeur vers le bloc à allouer
+	struct bb* allocated_block = NULL;
+
     // Parcourir la liste chaînée
     while (current_node != NULL) {
         // Vérifier si la taille du maillon actuel est inférieure ou égale à (size + sizeof(struct fb))
@@ -74,7 +82,15 @@ void* mem_alloc(size_t size) {
 
             // Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du maillon actuel
             char* new_address = (char*)current_node + (size + sizeof(struct fb));
-            
+
+            //Calculer la nouvelle adresse en ajoutant l'offset à l'adresse du pointeur vers la zone allouée
+			char* bb_address = (char*)current_node + (size + sizeof(struct bb));
+
+			// Mettre à jour le pointeur allocated_block avec la nouvelle adresse
+			allocated_block = (struct bb*)new_address;
+
+			// Mettre à jour la taille du pointeur de la zone allouée
+			allocated_block->size = (size + sizeof(struct bb));
             // Mettre à jour le pointeur current_node avec la nouvelle adresse
             current_node = (struct fb*)new_address;
 
@@ -84,6 +100,7 @@ void* mem_alloc(size_t size) {
             // Retourner un pointeur vers le maillon précédent
             return (void*)previous_node;
         }
+		//Initialiser le pointeur de la zone occupée
 
         // Mettre à jour le pointeur précédent avec le pointeur courant
         previous_node = current_node;
@@ -100,11 +117,14 @@ void* mem_alloc(size_t size) {
 //-------------------------------------------------------------
 // mem_get_size
 //-------------------------------------------------------------
-size_t mem_get_size(void * zone)
-{
-    //TODO: implement
-	assert(! "NOT IMPLEMENTED !");
-    return 0;
+size_t mem_get_size(void *zone) {
+    //on vérifie que la zone n'est pas NULL
+    if (zone != NULL) {
+        return sizeof(*zone);
+    }
+	else{
+		return 0;
+	}
 }
 
 //-------------------------------------------------------------
@@ -114,7 +134,53 @@ size_t mem_get_size(void * zone)
  * Free an allocaetd bloc.
 **/
 void mem_free(void *zone) {
-    //TODO: implement
+	//on récupère la 1er maillon de la liste chaînée
+    struct fb* head = info->first;
+	struct fb* tmp = head;
+	int free =0;
+	printf("knslvncd");
+	//parcours de la liste pour vérifier que la zone est bien occupée
+	while(tmp->next !=NULL)
+	{
+		if(zone != tmp)
+		{
+			tmp = tmp->next;
+		}
+		else
+		{
+			printf("cette adresse est déjà libre");
+			free = 1;
+			break;
+		}
+	}
+
+	//parcours de la liste pour ajouter un maillon à la liste (soit trier en même temps soit trier à la toute fin)
+	//penser à fusionner les zones
+	tmp = head;
+	struct fb* new_node;
+	struct fb* tmp2 = tmp->next;
+	if(free = 0)
+	{
+		while(tmp->next!=NULL)
+		{
+			//ajout d'un maillon dans la liste de zones libres
+			if((char*)zone < (char*)tmp)
+			{
+				tmp->next = new_node;
+				new_node->next = tmp2;
+				new_node->size = mem_get_size(zone)+sizeof(struct bb);
+			}
+
+		}
+		if((char*)zone > (char*)tmp)
+		{
+			tmp->next = new_node;
+			new_node->next = NULL;
+			new_node->size = mem_get_size(zone)+sizeof(struct bb);
+		}
+	}
+
+	//zone de fusion
 	assert(! "NOT IMPLEMENTED !");
 }
 
@@ -123,8 +189,50 @@ void mem_free(void *zone) {
 // mem_show
 //-------------------------------------------------------------
 void mem_show(void (*print)(void *, size_t, int free)) {
-    //TODO: implement
-	assert(! "NOT IMPLEMENTED !");
+    //printf("1ere adresse libre :=  %p\n",info->first);
+
+	//calcul de la 1ère adresse
+	struct fb* first_adress = (struct fb*)((char*)info + sizeof(struct info_alloc));
+	//printf("1ere adresse après info_alloc %p\n",first_adress);
+
+	//déclaration d'un tmp pour parcourir la liste
+	struct fb* tmp = (struct fb*)((char*)info + sizeof(struct info_alloc));
+	tmp = info->first;
+	
+	//taille définie dans mem_space.c, divisée par 2 car nombre maximum de zone libre dans la mémoire
+	unsigned long *tailles_zones_libres[(MEMORY_SIZE/2)+1];
+	unsigned long *adresses_zones_libres[(MEMORY_SIZE/2)+1];
+	adresses_zones_libres[0] = (unsigned long*)first_adress;
+	int i = 0;
+	
+	//parcours de la liste chaînée des zones libres et calcul des adresses
+	if(tmp->next !=NULL)
+	{
+		printf("lknvdscdsl");
+		while(tmp->next)
+		{	
+			tailles_zones_libres[i] = (unsigned long*)info->first->next->size;
+			unsigned long uinttemp = (unsigned long)adresses_zones_libres[i]+(unsigned long)tailles_zones_libres[i];
+			adresses_zones_libres[i+1] = (unsigned long*)uinttemp;
+			tmp = tmp->next;
+			i++;
+		}
+		i = 0;
+		while(adresses_zones_libres[i+1]!=NULL)
+		{
+			print(adresses_zones_libres[i],*tailles_zones_libres[i],1);
+		}
+	}
+	
+
+	//afficher zones libres
+	
+
+	//pour les zones occupées prendre first_adress puis comparer avec tableau zones libre pour faire un tableau des zones occupées 
+
+
+
+	//assert(! "NOT IMPLEMENTED !");
 }
 
 //-------------------------------------------------------------

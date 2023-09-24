@@ -183,7 +183,8 @@ void mem_free(void *zone)
 		struct fb* tmphead = info->first;
 
 		//si 1er bloc adresse après init probablement inutile
-		if(/*current = 1/*changer condition*/free == 1)
+		struct fb *first_adress = (struct fb *)((char *)info + sizeof(struct info_alloc));
+		if((char *)first_adress == (char*)current)
 		{
 			info->first = current;
 			current->next = tmphead;
@@ -230,9 +231,24 @@ void mem_free(void *zone)
 			}
 		}
 	}
+	// zone de fusion
+	//parcours de la liste des zones libres
+	tmp = info->first;
+	while(tmp !=NULL && tmp->next!=NULL)
+	{
+		char *next_address = (char *)tmp + tmp->size;
+		if((char *)next_address == (char *)tmp->next)
+		{
+			tmp->size += tmp->next->size;
+ 			tmp->next = tmp->next->next;
+		}
+		tmp = tmp->next;
+	}
+	
 	
 
-	// zone de fusion
+	
+
 	//assert(!"NOT IMPLEMENTED !");
 }
 
@@ -261,7 +277,6 @@ void mem_show(void (*print)(void *, size_t, int free))
 	// parcours de la liste chaînée des zones libres et calcul des adresses
 	if (tmp->next != NULL)
 	{
-		printf("lknvdscdsl");
 		while (tmp->next)
 		{
 			tailles_zones_libres[i] = (unsigned long *)info->first->next->size;

@@ -13,15 +13,15 @@
 struct block
 {
     size_t size; // Represents the free size if type is 1 or the size allocated if type is 0
-    struct block* next;
-    struct block* prev;
+    struct block *next;
+    struct block *prev;
     char type; // 0 if busy, 1 if free
 };
 
 // structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon
 struct info_alloc
 {
-    struct block* first;
+    struct block *first;
 };
 
 struct info_alloc *info;
@@ -40,14 +40,13 @@ void mem_init()
     struct block *init_block = (struct block *)((char *)info + sizeof(struct info_alloc));
 
     init_block->next = NULL;
-	init_block->prev = NULL;
+    init_block->prev = NULL;
 
     init_block->size = mem_space_get_size() - (sizeof(struct info_alloc));
 
     init_block->type = 1;
 
     info->first = init_block;
-
 }
 
 //-------------------------------------------------------------
@@ -56,11 +55,11 @@ void mem_init()
 /**
  * Allocate a bloc of the given size.
  **/
-void* mem_alloc(size_t size)
+void *mem_alloc(size_t size)
 {
 
-    struct block* current_block = info->first;
-    struct block* prev_block = NULL;
+    struct block *current_block = info->first;
+    struct block *prev_block = NULL;
 
     size_t total_size = size + sizeof(struct block);
 
@@ -72,7 +71,7 @@ void* mem_alloc(size_t size)
 
             if (remaining_size >= sizeof(struct block))
             {
-                struct block* new_block = (struct block*)((char*)current_block + total_size);
+                struct block *new_block = (struct block *)((char *)current_block + total_size);
                 new_block->size = remaining_size;
                 new_block->next = current_block->next;
                 new_block->prev = current_block;
@@ -88,7 +87,7 @@ void* mem_alloc(size_t size)
             }
 
             current_block->type = 0;
-            return (void*)(current_block + 1);
+            return (void *)(current_block + 1);
         }
 
         prev_block = current_block;
@@ -103,15 +102,15 @@ void* mem_alloc(size_t size)
 //-------------------------------------------------------------
 size_t mem_get_size(void *zone)
 {
-	// on vérifie que la zone n'est pas NULL
-	if (zone != NULL)
-	{
-		return sizeof((char*)zone);
-	}
-	else
-	{
-		return 0;
-	}
+    // on vérifie que la zone n'est pas NULL
+    if (zone != NULL)
+    {
+        return sizeof((char *)zone);
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 //-------------------------------------------------------------
@@ -127,13 +126,13 @@ void mem_free(void *zone)
         return;
     }
 
-    struct block* block_to_free = (struct block*)zone - 1;
+    struct block *block_to_free = (struct block *)zone - 1;
 
     block_to_free->type = 1;
 
     while (block_to_free->prev != NULL && block_to_free->prev->type == 1)
     {
-        struct block* prev_block = block_to_free->prev;
+        struct block *prev_block = block_to_free->prev;
         prev_block->next = block_to_free->next;
 
         if (block_to_free->next != NULL)
@@ -144,9 +143,30 @@ void mem_free(void *zone)
         block_to_free = prev_block;
     }
 
+    if (block_to_free->prev != NULL)
+    {
+        struct block *prev_block = block_to_free->prev;
+        struct block *new_block = (struct block*)((char *)(prev_block + 1) + prev_block->size);
+        new_block->next = block_to_free->next;
+        new_block->prev = block_to_free->prev;
+        new_block->type = 1;
+
+        if (block_to_free->next != NULL)
+        {
+            block_to_free->next->prev = new_block;
+        }
+
+        if (block_to_free->prev != NULL)
+        {
+            block_to_free->prev->next = new_block;
+        }
+
+        block_to_free = new_block;
+    }
+
     while (block_to_free->next != NULL && block_to_free->next->type == 1)
     {
-        struct block* next_block = block_to_free->next;
+        struct block *next_block = block_to_free->next;
         block_to_free->next = next_block->next;
 
         if (next_block->next != NULL)
@@ -155,16 +175,18 @@ void mem_free(void *zone)
         }
     }
 
-	if (block_to_free->next != NULL) {
-		block_to_free->size = (char*)block_to_free->next - (char*)block_to_free;
-	} else {
-		char *start_addr = (char *)mem_space_get_addr();
-		size_t size = mem_space_get_size();
-		char *end_addr = start_addr + size;
-		block_to_free->size = end_addr - (char* ) block_to_free;
-	}
+    if (block_to_free->next != NULL)
+    {
+        block_to_free->size = (char *)block_to_free->next - (char *)block_to_free;
+    }
+    else
+    {
+        char *start_addr = (char *)mem_space_get_addr();
+        size_t size = mem_space_get_size();
+        char *end_addr = start_addr + size;
+        block_to_free->size = end_addr - (char *)block_to_free;
+    }
 }
-
 
 //-------------------------------------------------------------
 // Itérateur(parcours) sur le contenu de l'allocateur
@@ -173,11 +195,11 @@ void mem_free(void *zone)
 void mem_show(void (*print)(void *, size_t, int))
 {
 
-    struct block* current_block = info->first;
+    struct block *current_block = info->first;
 
     while (current_block != NULL)
     {
-        print((void*)(current_block), current_block->size, current_block->type);
+        print((void *)(current_block), current_block->size, current_block->type);
         current_block = current_block->next;
     }
 }
@@ -187,8 +209,8 @@ void mem_show(void (*print)(void *, size_t, int))
 //-------------------------------------------------------------
 void mem_set_fit_handler(mem_fit_function_t *mff)
 {
-	// TODO: implement
-	assert(!"NOT IMPLEMENTED !");
+    // TODO: implement
+    assert(!"NOT IMPLEMENTED !");
 }
 
 //-------------------------------------------------------------
@@ -196,22 +218,22 @@ void mem_set_fit_handler(mem_fit_function_t *mff)
 //-------------------------------------------------------------
 mem_free_block_t *mem_first_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
-	// TODO: implement
-	assert(!"NOT IMPLEMENTED !");
-	return NULL;
+    // TODO: implement
+    assert(!"NOT IMPLEMENTED !");
+    return NULL;
 }
 //-------------------------------------------------------------
 mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
-	// TODO: implement
-	assert(!"NOT IMPLEMENTED !");
-	return NULL;
+    // TODO: implement
+    assert(!"NOT IMPLEMENTED !");
+    return NULL;
 }
 
 //-------------------------------------------------------------
 mem_free_block_t *mem_worst_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
-	// TODO: implement
-	assert(!"NOT IMPLEMENTED !");
-	return NULL;
+    // TODO: implement
+    assert(!"NOT IMPLEMENTED !");
+    return NULL;
 }

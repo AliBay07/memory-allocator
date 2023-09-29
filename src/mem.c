@@ -52,7 +52,7 @@ void mem_init()
     init_block->size = mem_space_get_size() - (sizeof(struct info_alloc));
 
     info->first = init_block;
-    mem_set_fit_handler(mem_best_fit);
+    mem_set_fit_handler(mem_first_fit);
 }
 
 //-------------------------------------------------------------

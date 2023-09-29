@@ -9,19 +9,26 @@
 #include "../headers/mem_os.h"
 #include <assert.h>
 
+#define ALIGN 4;
+
 /* structure pour les block dans la memoire */
-struct block
+struct fb
 {
-    size_t size; // Represents the free size if type is 1 or the size allocated if type is 0
-    struct block *next;
-    struct block *prev;
-    char type; // 0 if busy, 1 if free
+    size_t size;
+    struct fb *next;
+    struct fb *prev;
+};
+
+struct bb
+{
+    size_t size;
 };
 
 // structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon
 struct info_alloc
 {
-    struct block *first;
+    struct fb *first;
+    mem_fit_function_t *function_type;
 };
 
 struct info_alloc *info;
@@ -37,16 +44,15 @@ void mem_init()
 {
     info = (struct info_alloc *)mem_space_get_addr();
 
-    struct block *init_block = (struct block *)((char *)info + sizeof(struct info_alloc));
+    struct fb *init_block = (struct fb *)((char *)info + sizeof(struct info_alloc));
 
     init_block->next = NULL;
     init_block->prev = NULL;
 
     init_block->size = mem_space_get_size() - (sizeof(struct info_alloc));
 
-    init_block->type = 1;
-
     info->first = init_block;
+    mem_set_fit_handler(mem_first_fit);
 }
 
 //-------------------------------------------------------------
@@ -58,43 +64,40 @@ void mem_init()
 void *mem_alloc(size_t size)
 {
 
-    struct block *current_block = info->first;
-    struct block *prev_block = NULL;
+    printf("Before : %zu", size);
+    size = ALIGN(size);
+    printf("After : %zu", size);
 
-    size_t total_size = size + sizeof(struct block);
+    mem_fit_function_t *get_correct_block = info->function_type;
 
-    while (current_block != NULL)
+    size_t total_size = size + sizeof(struct fb);
+
+    struct fb *correct_block = (*get_correct_block)(info->first, total_size);
+
+    if (correct_block == NULL)
     {
-        if (current_block->type == 1 && current_block->size >= total_size)
-        {
-            size_t remaining_size = current_block->size - total_size;
-
-            if (remaining_size >= sizeof(struct block))
-            {
-                struct block *new_block = (struct block *)((char *)current_block + total_size);
-                new_block->size = remaining_size;
-                new_block->next = current_block->next;
-                new_block->prev = current_block;
-                new_block->type = 1;
-
-                if (current_block->next != NULL)
-                {
-                    current_block->next->prev = new_block;
-                }
-
-                current_block->size = size;
-                current_block->next = new_block;
-            }
-
-            current_block->type = 0;
-            return (void *)(current_block + 1);
-        }
-
-        prev_block = current_block;
-        current_block = current_block->next;
+        return NULL;
     }
 
-    return NULL;
+    size_t remaining_size = correct_block->size - total_size;
+
+    if (remaining_size >= sizeof(struct fb))
+    {
+        struct fb *new_block = (struct fb *)(correct_block + (sizeof(struct bb) + size));
+        new_block->size = remaining_size;
+
+        if (correct_block->next != NULL)
+        {
+            new_block->next = correct_block->next;
+        }
+        
+        new_block->prev = correct_block->prev;
+    }
+
+    struct bb* new_bb = (struct bb)correct_block;
+    new_bb->size = size;
+
+    return (void *)(new_bb + 1);
 }
 
 //-------------------------------------------------------------
@@ -146,7 +149,7 @@ void mem_free(void *zone)
     if (block_to_free->prev != NULL)
     {
         struct block *prev_block = block_to_free->prev;
-        struct block *new_block = (struct block*)((char *)(prev_block + 1) + prev_block->size);
+        struct block *new_block = (struct block *)((char *)(prev_block + 1) + prev_block->size);
         new_block->next = block_to_free->next;
         new_block->prev = block_to_free->prev;
         new_block->type = 1;
@@ -209,21 +212,30 @@ void mem_show(void (*print)(void *, size_t, int))
 //-------------------------------------------------------------
 void mem_set_fit_handler(mem_fit_function_t *mff)
 {
-    // TODO: implement
-    assert(!"NOT IMPLEMENTED !");
+    info->function_type = mff;
 }
 
 //-------------------------------------------------------------
 // Stratégies d'allocation
 //-------------------------------------------------------------
-mem_free_block_t *mem_first_fit(mem_free_block_t *first_free_block, size_t wanted_size)
+mem_fit_function_t *mem_first_fit(struct fb *first_free_block, size_t wanted_size)
 {
-    // TODO: implement
-    assert(!"NOT IMPLEMENTED !");
+
+    struct bb *current_block = first_free_block;
+
+    while (current_block != NULL)
+    {
+        if (current_block->size >= wanted_size)
+        {
+            return current_block;
+        }
+
+        current_block = current_block->next;
+    }
     return NULL;
 }
 //-------------------------------------------------------------
-mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted_size)
+mem_fit_function_t *mem_best_fit(struct fb *first_free_block, size_t wanted_size)
 {
     // TODO: implement
     assert(!"NOT IMPLEMENTED !");
@@ -231,7 +243,7 @@ mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted
 }
 
 //-------------------------------------------------------------
-mem_free_block_t *mem_worst_fit(mem_free_block_t *first_free_block, size_t wanted_size)
+mem_fit_function_t *mem_worst_fit(struct fb *first_free_block, size_t wanted_size)
 {
     // TODO: implement
     assert(!"NOT IMPLEMENTED !");

@@ -14,14 +14,13 @@
 /* structure pour les block dans la memoire */
 struct fb
 {
-    size_t size;
+    size_t free_size;
     struct fb *next;
-    struct fb *prev;
 };
 
 struct bb
 {
-    size_t size;
+    size_t busy_size;
 };
 
 // structure utilisée pour gérer info_alloc, qui pointera vers le premier maillon
@@ -47,9 +46,8 @@ void mem_init()
     struct fb *init_block = (struct fb *)((char *)info + sizeof(struct info_alloc));
 
     init_block->next = NULL;
-    init_block->prev = NULL;
 
-    init_block->size = mem_space_get_size() - (sizeof(struct info_alloc));
+    init_block->free_size = mem_space_get_size() - (sizeof(struct info_alloc));
 
     info->first = init_block;
     mem_set_fit_handler(mem_first_fit);
@@ -67,29 +65,37 @@ void *mem_alloc(size_t size)
 
     size_t total_size = size + sizeof(struct bb);
 
-    struct fb *correct_block = (struct fb *)(*get_correct_block)((mem_free_block_t *)info->first, total_size);
-    struct fb *new_block;
+    struct fb *previous_block = (struct fb *)(*get_correct_block)((mem_free_block_t *)info->first, total_size);
+    struct fb *correct_block = previous_block != NULL ? previous_block->next : (struct fb *)info->first;
+    struct fb *new_block = NULL;
 
     if (correct_block == NULL)
     {
         return NULL;
     }
 
-    size_t remaining_size = correct_block->size - total_size;
+    size_t remaining_size = correct_block->free_size - total_size;
 
     if (remaining_size >= sizeof(struct fb))
     {
         new_block = (struct fb *)((char *)correct_block + total_size);
         new_block->next = correct_block->next;
-        new_block->prev = correct_block->prev;
-        new_block->size = correct_block->size;
+        correct_block->next = new_block;
+        new_block->free_size = remaining_size;
     }
     else
     {
-        if (new_block->next != NULL && (char *)new_block->next == (char *)new_block + new_block->size)
+        if (correct_block->next != NULL && (char *)correct_block->next == (char *)correct_block + correct_block->free_size)
         {
-            new_block->next = new_block->next->next;
-            new_block->size += remaining_size;
+            struct fb *next_block = correct_block->next;
+            size_t next_block_size = next_block->free_size;
+            struct fb *next_block_next = next_block->next;
+
+            next_block = (struct fb *)((char *)next_block - remaining_size);
+            next_block->next = next_block_next;
+            next_block->free_size = next_block_size + remaining_size;
+
+            correct_block->next = next_block;
         }
         else
         {
@@ -97,14 +103,13 @@ void *mem_alloc(size_t size)
         }
     }
 
-    if (new_block->prev == NULL)
+    if (previous_block == NULL)
     {
-        info->first = new_block;
+        info->first = (new_block != NULL) ? new_block : correct_block->next;
     }
 
-    new_block->size -= total_size;
-    struct bb *new_bb = (struct bb *)((char *)new_block - total_size);
-    new_bb->size = size;
+    struct bb *new_bb = (struct bb *)correct_block;
+    new_bb->busy_size = size;
 
     return (void *)(new_bb + 1);
 }
@@ -134,144 +139,51 @@ size_t mem_get_size(void *zone)
 void mem_free(void *zone)
 {
 
-    if (zone == NULL)
-    {
+    if (zone == NULL) {
         return;
     }
 
-    struct bb *freed_block = (struct bb *)((char *)zone - sizeof(struct bb));
-    size_t freed_block_size = freed_block->size;
-    struct fb *new_fb = (struct fb *)freed_block;
+    struct bb *bb_ptr = (struct bb *)zone - 1;
+    size_t busy_size = bb_ptr->busy_size;
 
-    new_fb->size = freed_block_size + sizeof(struct bb);
+    struct fb *new_fb = (struct fb *)bb_ptr;
+    new_fb->free_size = busy_size + sizeof(struct bb);
 
     struct fb *current_block = info->first;
     struct fb *prev_block = NULL;
 
-    // Find the position to insert new_fb into the linked list
     while (current_block != NULL && current_block < new_fb)
     {
         prev_block = current_block;
         current_block = current_block->next;
     }
 
-    // Update the pointers of new_fb
-    new_fb->prev = prev_block;
-    new_fb->next = current_block;
-
-    // Insert new_fb into the linked list
-    if (prev_block != NULL)
+    if (current_block != NULL && (char *)new_fb + new_fb->free_size == (char *)current_block)
     {
-        prev_block->next = new_fb;
+        new_fb->free_size += current_block->free_size;
+        new_fb->next = current_block->next;
     }
     else
     {
-        info->first = new_fb;
+        new_fb->next = current_block;
     }
 
-    if (current_block != NULL)
+    if (prev_block != NULL && (char *)prev_block + prev_block->free_size == (char *)new_fb)
     {
-        current_block->prev = new_fb;
+        prev_block->free_size += new_fb->free_size;
+        prev_block->next = new_fb->next;
     }
-
-    // // Merge with the previous block if it's also free
-    // if (new_fb->prev != NULL && (char *)new_fb->prev + new_fb->prev->size == (char *)new_fb)
-    // {
-    //     struct fb *prev_fb = new_fb->prev;
-    //     prev_fb->size += new_fb->size;
-
-    //     // Remove new_fb from the linked list
-    //     prev_fb->next = new_fb->next;
-    //     if (new_fb->next != NULL)
-    //     {
-    //         new_fb->next->prev = prev_fb;
-    //     }
-
-    //     new_fb = prev_fb; // Update the pointer to the merged block
-    // }
-
-    // // Merge with the next block if it's also free
-    // if (new_fb->next != NULL && (char *)new_fb + new_fb->size == (char *)new_fb->next)
-    // {
-    //     struct fb *next_fb = new_fb->next;
-    //     new_fb->size += next_fb->size;
-
-    //     // Remove next_fb from the linked list
-    //     new_fb->next = next_fb->next;
-    //     if (next_fb->next != NULL)
-    //     {
-    //         next_fb->next->prev = new_fb;
-    //     }
-    // }
-
-
-    
-
-    // if (zone == NULL)
-    // {
-    //     return;
-    // }
-
-    // struct block *block_to_free = (struct block *)zone - 1;
-
-    // block_to_free->type = 1;
-
-    // while (block_to_free->prev != NULL && block_to_free->prev->type == 1)
-    // {
-    //     struct block *prev_block = block_to_free->prev;
-    //     prev_block->next = block_to_free->next;
-
-    //     if (block_to_free->next != NULL)
-    //     {
-    //         block_to_free->next->prev = prev_block;
-    //     }
-
-    //     block_to_free = prev_block;
-    // }
-
-    // if (block_to_free->prev != NULL)
-    // {
-    //     struct block *prev_block = block_to_free->prev;
-    //     struct block *new_block = (struct block *)((char *)(prev_block + 1) + prev_block->size);
-    //     new_block->next = block_to_free->next;
-    //     new_block->prev = block_to_free->prev;
-    //     new_block->type = 1;
-
-    //     if (block_to_free->next != NULL)
-    //     {
-    //         block_to_free->next->prev = new_block;
-    //     }
-
-    //     if (block_to_free->prev != NULL)
-    //     {
-    //         block_to_free->prev->next = new_block;
-    //     }
-
-    //     block_to_free = new_block;
-    // }
-
-    // while (block_to_free->next != NULL && block_to_free->next->type == 1)
-    // {
-    //     struct block *next_block = block_to_free->next;
-    //     block_to_free->next = next_block->next;
-
-    //     if (next_block->next != NULL)
-    //     {
-    //         next_block->next->prev = block_to_free;
-    //     }
-    // }
-
-    // if (block_to_free->next != NULL)
-    // {
-    //     block_to_free->size = (char *)block_to_free->next - (char *)block_to_free;
-    // }
-    // else
-    // {
-    //     char *start_addr = (char *)mem_space_get_addr();
-    //     size_t size = mem_space_get_size();
-    //     char *end_addr = start_addr + size;
-    //     block_to_free->size = end_addr - (char *)block_to_free;
-    // }
+    else
+    {
+        if (prev_block != NULL)
+        {
+            prev_block->next = new_fb;
+        }
+        else
+        {
+            info->first = new_fb;
+        }
+    }
 }
 
 //-------------------------------------------------------------
@@ -288,13 +200,13 @@ void mem_show(void (*print)(void *, size_t, int))
         if (address < (char *)current_block)
         {
             struct bb *busy_block = (struct bb *)address;
-            print((void *)busy_block, busy_block->size, 0);
-            address += sizeof(struct bb) + busy_block->size;
+            print((void *)busy_block, busy_block->busy_size, 0);
+            address += sizeof(struct bb) + busy_block->busy_size;
         }
         else
         {
-            print((void *)current_block, current_block->size, current_block == info->first ? 2 : 1);
-            address = (char *)current_block + sizeof(struct fb) + current_block->size;
+            print((void *)current_block, current_block->free_size, 1);
+            address = (char *)current_block + current_block->free_size;
             current_block = current_block->next;
         }
     }
@@ -314,14 +226,16 @@ void mem_set_fit_handler(mem_fit_function_t *mff)
 mem_free_block_t *mem_first_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
     struct fb *current_block = (struct fb *)first_free_block;
+    struct fb *previous_block = NULL;
 
     while (current_block != NULL)
     {
-        if (current_block->size >= wanted_size)
+        if (current_block->free_size >= wanted_size)
         {
-            return (mem_free_block_t *)current_block;
+            return (mem_free_block_t *)previous_block;
         }
 
+        previous_block = current_block;
         current_block = current_block->next;
     }
 
@@ -333,19 +247,21 @@ mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted
 {
     struct fb *current_block = (struct fb *)first_free_block;
     struct fb *best_fit_block = NULL;
+    struct fb *previous_block = NULL;
 
     while (current_block != NULL)
     {
-        if (current_block->size >= wanted_size &&
-            (best_fit_block == NULL || current_block->size < best_fit_block->size))
+        if (current_block->free_size >= wanted_size &&
+            (best_fit_block == NULL || current_block->free_size < best_fit_block->free_size))
         {
             best_fit_block = current_block;
         }
 
+        previous_block = current_block;
         current_block = current_block->next;
     }
 
-    return (mem_free_block_t *)best_fit_block;
+    return (mem_free_block_t *)previous_block;
 }
 
 //-------------------------------------------------------------
@@ -353,17 +269,19 @@ mem_free_block_t *mem_worst_fit(mem_free_block_t *first_free_block, size_t wante
 {
     struct fb *current_block = (struct fb *)first_free_block;
     struct fb *worst_fit_block = NULL;
+    struct fb *previous_block = NULL;
 
     while (current_block != NULL)
     {
-        if (current_block->size >= wanted_size &&
-            (worst_fit_block == NULL || current_block->size > worst_fit_block->size))
+        if (current_block->free_size >= wanted_size &&
+            (worst_fit_block == NULL || current_block->free_size > worst_fit_block->free_size))
         {
             worst_fit_block = current_block;
         }
 
+        previous_block = current_block;
         current_block = current_block->next;
     }
 
-    return (mem_free_block_t *)worst_fit_block;
+    return (mem_free_block_t *)previous_block;
 }

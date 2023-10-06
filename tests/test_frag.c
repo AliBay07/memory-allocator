@@ -49,12 +49,11 @@ int main(int argc, char *argv[]) {
                (int)((char *)allocs[i] - (char *)mem_space_get_addr()));
         assert(allocs[i] <
                (void *)((char *)mem_space_get_addr() + mem_space_get_size()));
-
         // On libère à intervalle aléatoire un bloc occupé d'adresse aléatoire
         // parmis les blocs alloué en mémoire
         if (rand() % FREQ_FREE == 0) {
             free = ((rand() % (i + 1)) - 1);
-            printf("Libération %d\n", free);
+            printf("Liberation %d\n", free);
             assert(allocs[free] <
                    (void *)((char *)mem_space_get_addr() + mem_space_get_size()));
             mem_free(allocs[free]);
@@ -73,7 +72,6 @@ int main(int argc, char *argv[]) {
         printf("Le tableau d'allocation est trop petit, augmentez MAX_ALLOC ou "
                "MAX_BLOC\n");
     }
-
     // Fin du test
     return 0;
 }

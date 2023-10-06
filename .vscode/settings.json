@@ -2,6 +2,13 @@
     "files.associations": {
         "assert.h": "c",
         "stdio.h": "c",
-        "mem_os.h": "c"
+        "mem_os.h": "c",
+        "random": "c",
+        "array": "c",
+        "hash_map": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "exception": "c"
     }
 }

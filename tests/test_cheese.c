@@ -25,7 +25,7 @@ void my_free(void **mem) {
 
 static void *checked_alloc(size_t s) {
     void *result;
-
+    printf("taille de s %zu\n",s);
     assert((result = mem_alloc(s)) != NULL);
     // debug("Alloced %zu bytes at %p\n", s, result);
     return result;
@@ -42,9 +42,11 @@ void reset() {
 
 void store_or_check(void *adr) {
     if (nb_allocs < NB_MAX_STORES) {
-        if (first)
+        if (first){
             allocs[nb_allocs++] = adr;
+            printf(" dans if adresse allocs %p adresse adr %p\n",allocs[nb_allocs++],adr);}
         else
+        printf("dans else adresse allocs %p adresse adr %p\n",allocs[nb_allocs++],adr);
             assert(allocs[nb_allocs++] == adr);
     }
 }
@@ -73,6 +75,7 @@ int main(int argc, char *argv[]) {
                     "Définir DEBUG à la compilation pour avoir une sortie un "
                     "peu plus verbeuse."
                     "\n");
+                    
     for (int i = 0; i < NB_TESTS; i++) {
         debug("Issuing test number %d\n", i);
         alloc_fun(6);

@@ -15,6 +15,9 @@
 #define MAX_ALLOC (1 << 10)
 #define NB_TESTS 10
 
+#if defined(DEBUG)
+#endif
+
 static void *allocs[MAX_ALLOC];
 
 static int make_test() {

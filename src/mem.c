@@ -66,6 +66,11 @@ void *mem_alloc(size_t size)
 
     size_t total_size = size + sizeof(struct bb);
 
+    if(size == 0)
+    {
+        return NULL;
+    }
+
     if (total_size < sizeof(struct fb))
     {
         total_size = sizeof(struct fb);
@@ -229,6 +234,10 @@ void mem_free(void *zone)
 
     while (current_block != NULL && (char *)current_block < (char *)bb_ptr)
     {
+        if((char*)current_block == (char*)bb_ptr)
+        {
+            return;
+        }
         prev_block = current_block;
         current_block = current_block->next;
     }

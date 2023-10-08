@@ -51,7 +51,7 @@ void mem_init()
     initial_block->next = first_block;
     first_block->next = NULL;
 
-    mem_set_fit_handler(mem_first_fit);
+    mem_set_fit_handler(mem_best_fit);
 }
 
 //-------------------------------------------------------------
@@ -401,14 +401,16 @@ mem_free_block_t *mem_first_fit(mem_free_block_t *first_free_block, size_t wante
 mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
     struct fb *current_block = (struct fb *)first_free_block;
+    struct fb *previous_block = info->first;
     struct fb *best_fit_block = NULL;
-    struct fb *previous_block = NULL;
+    struct fb *best_fit_previous_block = previous_block;
 
     while (current_block != NULL)
     {
         if (current_block->free_size >= wanted_size &&
             (best_fit_block == NULL || current_block->free_size < best_fit_block->free_size))
         {
+            best_fit_previous_block = previous_block;
             best_fit_block = current_block;
         }
 
@@ -416,21 +418,23 @@ mem_free_block_t *mem_best_fit(mem_free_block_t *first_free_block, size_t wanted
         current_block = current_block->next;
     }
 
-    return (mem_free_block_t *)previous_block;
+    return (mem_free_block_t *)best_fit_previous_block;
 }
 
 //-------------------------------------------------------------
 mem_free_block_t *mem_worst_fit(mem_free_block_t *first_free_block, size_t wanted_size)
 {
     struct fb *current_block = (struct fb *)first_free_block;
+    struct fb *previous_block = info->first;
     struct fb *worst_fit_block = NULL;
-    struct fb *previous_block = NULL;
+    struct fb *worst_fit_previous_block = info->first;
 
     while (current_block != NULL)
     {
         if (current_block->free_size >= wanted_size &&
             (worst_fit_block == NULL || current_block->free_size > worst_fit_block->free_size))
-        {
+        {   
+            worst_fit_previous_block = previous_block;
             worst_fit_block = current_block;
         }
 
@@ -438,5 +442,5 @@ mem_free_block_t *mem_worst_fit(mem_free_block_t *first_free_block, size_t wante
         current_block = current_block->next;
     }
 
-    return (mem_free_block_t *)previous_block;
+    return (mem_free_block_t *)worst_fit_previous_block;
 }

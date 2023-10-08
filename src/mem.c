@@ -63,7 +63,7 @@ void mem_init()
 void *mem_alloc(size_t size)
 {
 
-    if (info->first->next == NULL)
+    if (info->first->next == NULL || size == 0)
     {
         return NULL;
     }
@@ -71,11 +71,6 @@ void *mem_alloc(size_t size)
     mem_fit_function_t *get_correct_block = info->function_type;
 
     size_t total_size = size + sizeof(struct bb);
-
-    if(size == 0)
-    {
-        return NULL;
-    }
 
     if (total_size < sizeof(struct fb))
     {
@@ -264,7 +259,7 @@ void *mem_realloc(void *pointer, size_t size)
     {
         if((char*)current_block == (char*)bb_ptr)
         {
-            return;
+            return NULL;
         }
         prev_block = current_block;
         current_block = current_block->next;

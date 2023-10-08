@@ -18,7 +18,7 @@
 void my_free(void **mem) {
     if (*mem != NULL) {
         mem_free(*mem);
-        debug("Freed %p\n", *mem);
+        printf("Freed %p\n", *mem);
         *mem = NULL;
     }
 }
@@ -27,7 +27,7 @@ static void *checked_alloc(size_t s) {
     void *result;
 
     assert((result = mem_alloc(s)) != NULL);
-    debug("Alloced %zu bytes at %p\n", s, result);
+    printf("Alloced %zu bytes at %p\n", s, result);
     return result;
 }
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
                     "peu plus verbeuse."
                     "\n");
     for (int i = 0; i < NB_TESTS; i++) {
-        debug("Issuing test number %d\n", i);
+        printf("Issuing test number %d\n", i);
         alloc_fun(6);
         reset();
     }

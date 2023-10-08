@@ -51,7 +51,7 @@ void mem_init()
     initial_block->next = first_block;
     first_block->next = NULL;
 
-    mem_set_fit_handler(mem_best_fit);
+    mem_set_fit_handler(mem_first_fit);
 }
 
 //-------------------------------------------------------------

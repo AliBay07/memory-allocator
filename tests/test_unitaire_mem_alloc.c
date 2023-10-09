@@ -15,6 +15,7 @@ void  test_malloc_size0()
 void test_malloc(size_t size)
 {
     void *ptr = mem_alloc(size);
+    mem_get_size(ptr);
     assert(ptr != NULL);
 }
 

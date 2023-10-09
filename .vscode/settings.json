@@ -3,19 +3,6 @@
         "assert.h": "c",
         "stdio.h": "c",
         "mem_os.h": "c",
-<<<<<<< HEAD
         "test_unitaire.C": "cpp"
-=======
-        "array": "c",
-        "hash_map": "c",
-        "string_view": "c",
-        "initializer_list": "c",
-        "utility": "c",
-        "deque": "c",
-        "list": "c",
-        "string": "c",
-        "vector": "c",
-        "iterator": "c"
->>>>>>> cc1d371c8d2b482952d2b98af0043665a8500c4c
     }
 }

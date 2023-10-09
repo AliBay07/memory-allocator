@@ -163,14 +163,16 @@ void *mem_alloc(size_t size)
 //-------------------------------------------------------------
 size_t mem_get_size(void *zone)
 {
-    // on vérifie que la zone n'est pas NULL
+    // Vérifiez que la zone n'est pas NULL
     if (zone != NULL)
     {
-        return sizeof((char *)zone);
+        // pointeur vers la structure bb précédant la zone
+        struct bb *bb_ptr = (struct bb *)zone - 1;
+        return bb_ptr->busy_size;
     }
     else
     {
-        return 0;
+        return 0; // Retournez 0 si la zone est NULL
     }
 }
 
@@ -208,7 +210,7 @@ void mem_free(void *zone)
     // the adress of prev_block is before the adress of the busy block
     // This way, we get the free blocks that are right before and right
     // after the zone we're trying to free
-    while (current_block != NULL && (char *)prev_block < (char *)bb_ptr)
+    while (current_block != NULL && (char *)current_block < (char *)bb_ptr)
     {
         prev_block = current_block;
         current_block = current_block->next;

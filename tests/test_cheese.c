@@ -43,7 +43,9 @@ void reset() {
 void store_or_check(void *adr) {
     if (nb_allocs < NB_MAX_STORES) {
         if (first)
+        {
             allocs[nb_allocs++] = adr;
+        }
         else
             assert(allocs[nb_allocs++] == adr);
     }

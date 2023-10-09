@@ -6,27 +6,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void  test_malloc_size0()
+void  test_malloc_size0()
 {
     void *ptr = mem_alloc(0);
     assert(ptr == NULL);
 }
 
-static void test_malloc(size_t size)
+void test_malloc(size_t size)
 {
     void *ptr = mem_alloc(size);
     assert(ptr != NULL);
 }
 
-static void test_malloc_invalid_zone(size_t size)
-{
-    void *ptr1 = mem_alloc(size);
-    void *ptr2 = mem_alloc(size);
-
-    assert(ptr2 == NULL);
-}
-
-static void  test_malloc_out_of_end_memory()
+void  test_malloc_out_of_end_memory()
 {
     size_t mem_size = mem_space_get_size();
 
@@ -35,7 +27,7 @@ static void  test_malloc_out_of_end_memory()
     assert(ptr == NULL);
 }
 
-static void test_malloc_out_of_start_memory()
+void test_malloc_out_of_start_memory()
 {
     void *mem_start = mem_space_get_addr();
     void *too_small_size = (void *)((char *)mem_start - 1);
@@ -43,9 +35,7 @@ static void test_malloc_out_of_start_memory()
     assert(ptr == NULL);
 }
 
-
-
-int main(int argc, char *argv[]) {
+int main() {
     mem_init();
     test_malloc_size0();
     test_malloc(16);
@@ -54,7 +44,3 @@ int main(int argc, char *argv[]) {
     printf("Tests successed\n");
     return 0;
 }
-
-
-
-

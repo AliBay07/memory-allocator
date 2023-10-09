@@ -6,12 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void test_free_null()
+void test_free_null()
 {
     mem_free(NULL);   
 }
 
-static void test_free_valid_zone()
+void test_free_valid_zone()
 {
      void *ptr = mem_alloc(16);
     mem_free(ptr);
@@ -22,7 +22,7 @@ static void test_free_valid_zone()
     assert(new_ptr == ptr);
 }
 
-static void test_free_fusion()
+void test_free_fusion()
 {
     void *ptr1 = mem_alloc(64);
 
@@ -36,7 +36,7 @@ static void test_free_fusion()
 }
 
 
-static void test_free_out_of_start_memory()
+void test_free_out_of_start_memory()
 {
     void *mem_start = mem_space_get_addr();
     void *ptr = mem_alloc(16);
@@ -44,7 +44,7 @@ static void test_free_out_of_start_memory()
     mem_free((char *)mem_start - 1);
 }
 
-static void test_free_out_of_end_memory()
+void test_free_out_of_end_memory()
 {
     void *mem_end = mem_space_get_addr();
     void *ptr = mem_alloc(16);
@@ -52,7 +52,7 @@ static void test_free_out_of_end_memory()
     mem_free((char *)mem_end + 1);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
     mem_init();
     test_free_null();

@@ -102,7 +102,8 @@ void *mem_alloc(size_t size)
     }
 
     struct bb *new_bb = (struct bb *)correct_block;
-    if (size < 8) {
+    if (size < 8)
+    {
         size = 8;
     }
     new_bb->busy_size = size;
@@ -115,14 +116,39 @@ void *mem_alloc(size_t size)
 //-------------------------------------------------------------
 size_t mem_get_size(void *zone)
 {
-    // on vérifie que la zone n'est pas NULL
+    size_t taille = 0;
+    // Vérifiez que la zone n'est pas NULL
+
     if (zone != NULL)
     {
-        return sizeof((char *)zone);
+        // pointeur vers la structure bb précédant la zone
+        struct bb *bb_ptr = (struct bb *)zone - 1;
+        struct bb *tmp_bb = bb_ptr;
+        struct fb *tmp_fb = info->first;
+
+        // vérification si ce n'est pas dans un fb
+        while (tmp_bb != NULL && tmp_fb != NULL)
+        {
+            if ((char*)tmp_bb >= (char*)tmp_fb && (char*)tmp_bb <= (char*)tmp_fb)
+            {
+                return taille;
+            }
+            tmp_bb = (struct bb *)(tmp_bb + tmp_bb->busy_size) + sizeof(struct bb);
+            tmp_fb = tmp_fb->next;
+        }
+        if (bb_ptr->busy_size < sizeof(struct fb))
+        {
+            taille = sizeof(struct fb);
+        }
+        else
+        {
+            taille = bb_ptr->busy_size;
+        }
+        return taille;
     }
     else
     {
-        return 0;
+        return taille; // Retournez 0 si la zone est NULL
     }
 }
 
@@ -155,14 +181,17 @@ void mem_free(void *zone)
     }
 
     struct bb *busy_block;
-    if (prev_block->free_size <= sizeof(struct fb)) {
-        busy_block = (struct bb *)((char*)prev_block + sizeof(struct fb));
-    } else {
-        busy_block = (struct bb *)((char*)prev_block + prev_block->free_size);
+    if (prev_block->free_size <= sizeof(struct fb))
+    {
+        busy_block = (struct bb *)((char *)prev_block + sizeof(struct fb));
+    }
+    else
+    {
+        busy_block = (struct bb *)((char *)prev_block + prev_block->free_size);
     }
 
     int adresses_match = 0;
-    while ((char*)busy_block < (char *)zone)
+    while ((char *)busy_block < (char *)zone)
     {
 
         if ((char *)busy_block + sizeof(struct bb) > (char *)zone)
@@ -170,15 +199,16 @@ void mem_free(void *zone)
             return;
         }
         else if ((char *)busy_block + sizeof(struct bb) == zone)
-        {   
+        {
             adresses_match = 1;
             break;
         }
 
-        busy_block = (struct bb*)((char*)busy_block + sizeof(struct bb) + busy_block->busy_size);
+        busy_block = (struct bb *)((char *)busy_block + sizeof(struct bb) + busy_block->busy_size);
     }
 
-    if (adresses_match == 0) {
+    if (adresses_match == 0)
+    {
         return;
     }
 
@@ -217,90 +247,113 @@ void mem_free(void *zone)
 //-------------------------------------------------------------
 // mem_realloc
 //-------------------------------------------------------------
-// void *mem_realloc(void *pointer, size_t size)
-// {
+void *mem_realloc(void *pointer, size_t size)
+{
+    if (pointer == NULL)
+    {
+        return mem_alloc(size);
+    }
+    else if (size == 0)
+    {
+        mem_free(pointer);
+        return NULL;
+    }
+    else
+    {
+        size_t old_size = mem_get_size(pointer);
 
-//     if (pointer == NULL)
-//     {
-//         return mem_alloc(size);
-//     }
+        struct bb *bb_ptr = (struct bb *)pointer - 1;
+        size_t busy_size = bb_ptr->busy_size;
 
-//     if (pointer - sizeof(struct bb) < (mem_space_get_addr() + sizeof(struct info_alloc) + sizeof(struct fb)) ||
-//         pointer > (mem_space_get_addr() + mem_space_get_size()))
-//     {
-//         return NULL;
-//     }
+        struct fb *prev_block = info->first;
+        struct fb *current_block = prev_block->next;
 
-//     struct bb *bb_ptr = (struct bb *)pointer - 1;
-//     size_t busy_size = bb_ptr->busy_size;
+        while (current_block != NULL && (char *)current_block < (char *)bb_ptr)
+        {
+            prev_block = current_block;
+            current_block = current_block->next;
+        }
 
-//     struct fb *current_block = info->first;
-//     struct fb *prev_block = NULL;
+        struct bb *busy_block;
+        if (prev_block->free_size <= sizeof(struct fb))
+        {
+            busy_block = (struct bb *)((char *)prev_block + sizeof(struct fb));
+        }
+        else
+        {
+            busy_block = (struct bb *)((char *)prev_block + prev_block->free_size);
+        }
 
-//     while (current_block != NULL && (char *)current_block < (char *)bb_ptr)
-//     {
-//         if ((char *)current_block == (char *)bb_ptr)
-//         {
-//             return NULL;
-//         }
-//         prev_block = current_block;
-//         current_block = current_block->next;
-//     }
+        int adresses_match = 0;
+        while ((char *)busy_block < (char *)pointer)
+        {
 
-//     char *address_current_block;
-//     char *address_previous_block;
+            if ((char *)busy_block + sizeof(struct bb) > (char *)pointer)
+            {
+                return NULL;
+            }
+            else if ((char *)busy_block + sizeof(struct bb) == pointer)
+            {
+                adresses_match = 1;
+                break;
+            }
 
-//     (current_block != NULL) ? (address_current_block = (char *)current_block) : (address_current_block = (char *)(mem_space_get_addr() + mem_space_get_size()));
+            busy_block = (struct bb *)((char *)busy_block + sizeof(struct bb) + busy_block->busy_size);
+        }
 
-//     if (prev_block != NULL)
-//     {
-//         address_previous_block = ((char *)prev_block == (char *)info->first)
-//                                      ? (char *)prev_block + sizeof(struct fb)
-//                                      : (char *)prev_block + prev_block->free_size;
-//     }
-//     else
-//     {
-//         address_previous_block = (char *)mem_space_get_addr() + sizeof(struct info_alloc) + sizeof(struct fb);
-//     }
+        if (adresses_match == 0)
+        {
+            return NULL;
+        }
 
-//     struct bb *busy_block;
-//     while (address_previous_block < (char *)address_current_block)
-//     {
-//         busy_block = (struct bb *)address_previous_block;
-//         address_previous_block += sizeof(struct bb);
-//         if ((char *)address_previous_block > (char *)pointer)
-//         {
-//             return NULL;
-//         }
-//         else if (address_previous_block == pointer)
-//         {
-//             break;
-//         }
-//         address_previous_block += busy_block->busy_size;
-//     }
+        if (size > old_size)
+        {
+            if (current_block != NULL && (char *)busy_block + busy_block->busy_size == (char *)current_block &&
+                current_block->free_size - (size - old_size) >= sizeof(struct fb))
+            {
+                current_block = (struct fb*)(char *)current_block + (size - old_size);
+                busy_block->busy_size = size;
+                return (void *)busy_block + 1;
+            }
 
-//     if ((char *)address_previous_block >= (char *)address_current_block ||
-//         (char *)busy_block + busy_block->busy_size > (char *)(mem_space_get_addr() + mem_space_get_size()))
-//     {
-//         return NULL;
-//     }
+            void *new_pointer = mem_alloc(size);
 
-//     if (((char *)busy_block + sizeof(struct bb) + busy_block->busy_size) != address_current_block)
-//     {
-//         return mem_alloc(size);
-//     }
-//     else if (current_block != NULL || current_block->free_size >= size)
-//     {
-//         busy_block->busy_size = size;
-//         prev_block->next = current_block->next;
+            char *src = (char *)pointer;
+            char *dest = (char *)new_pointer;
 
-//         return (void *)(busy_block + 1);
-//     }
-//     else
-//     {
-//         return mem_alloc(size);
-//     }
-// }
+            for (size_t i = 0; i < size; i++)
+            {
+                dest[i] = src[i];
+            }
+
+            mem_free(pointer);
+
+            return new_pointer;
+        }
+        else if (size < old_size)
+        {
+
+            if (current_block != NULL && (char *)busy_block + busy_block->busy_size == (char *)current_block)
+            {
+                current_block = (struct fb*)(char *)current_block - (old_size - size);
+                current_block->free_size += (old_size - size);
+                busy_block->busy_size = size;
+            }
+            else if ((old_size - size) >= sizeof(struct fb))
+            {
+                busy_block->busy_size = size;
+                struct fb *new_fb = (struct fb *)((char *)busy_block + busy_block->busy_size);
+                new_fb->free_size = (old_size - size);
+                prev_block->next = new_fb;
+                new_fb->next = current_block;
+            }
+
+            return pointer;
+        } else {
+            return pointer;
+        }
+    }
+}
 
 //-------------------------------------------------------------
 // Itérateur(parcours) sur le contenu de l'allocateur

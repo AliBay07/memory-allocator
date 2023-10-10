@@ -58,7 +58,6 @@ void run_allocation_test(mem_fit_function_t* fit_strategy, int min, int max) {
     clock_t end_time = clock();
     double execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("Fit Strategy: %s\n", fit_strategy);
     printf("Memory ratio when allocating sizes between %d and %d bytes: %f\n", min, max, (double)total_allocated / mem_size);
     printf("Time taken: %.8f seconds\n\n", execution_time);
 }
@@ -67,8 +66,11 @@ int main(int argc, char *argv[])
 {
     mem_init();
 
+    printf("First Fit Strategy \n");
     run_allocation_test(mem_first_fit, 20, 30);
+    printf("Best Fit Strategy \n");
     run_allocation_test(mem_best_fit, 20, 30);
+    printf("Worst Fit Strategy \n");
     run_allocation_test(mem_worst_fit, 20, 30);
 
     printf("Tests succeeded.\n");

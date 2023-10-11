@@ -6,7 +6,7 @@
 #include "../headers/mem_os.h"
 #include "../src/mem.c"
 
-#define NB_MAX_STORES 10
+#define NB_MAX_STORES 100000
 
 typedef struct {
     void* address;
@@ -31,6 +31,21 @@ void* allocate_and_track(size_t size, AllocationRecord* table, size_t* table_siz
     return allocated_mem;
 }
 
+/**
+ * Exécute un test d'allocation de mémoire avec une stratégie de placement donnée.
+ * 
+ * Paramètres : 
+ *   - fit_strategy (pointeur vers la stratégie de placement de mémoire)
+ *   - min (taille minimale de l'allocation)
+ *   - max (taille maximale de l'allocation)
+ * 
+ * Description : Cette fonction exécute un test d'allocation de mémoire en utilisant la
+ * stratégie de placement spécifiée. Elle alloue de manière aléatoire des zones mémoire
+ * de tailles comprises entre "min" et "max," en suivant la stratégie de placement donnée.
+ * Les allocations et les libérations sont suivies et enregistrées dans la table "allocation_table."
+ * La fonction mesure le temps d'exécution du test et affiche le rapport mémoire utilisée sur
+ * la mémoire totale disponible, ainsi que le temps écoulé.
+ */
 void run_allocation_test(mem_fit_function_t* fit_strategy, int min, int max) {
     size_t total_allocated = 0;
     size_t mem_size = mem_space_get_size();
@@ -62,17 +77,20 @@ void run_allocation_test(mem_fit_function_t* fit_strategy, int min, int max) {
     printf("Time taken: %.8f seconds\n\n", execution_time);
 }
 
-int main(int argc, char *argv[])
-{
+int main() {
     mem_init();
 
-    printf("First Fit Strategy \n");
-    run_allocation_test(mem_first_fit, 20, 30);
-    printf("Best Fit Strategy \n");
-    run_allocation_test(mem_best_fit, 20, 30);
-    printf("Worst Fit Strategy \n");
-    run_allocation_test(mem_worst_fit, 20, 30);
+    mem_fit_function_t* fit_strategies[] = {mem_first_fit, mem_best_fit, mem_worst_fit};
+    const char* strategy_names[] = {"First Fit Strategy", "Best Fit Strategy", "Worst Fit Strategy"};
+    int min_size = 20;
+    int max_size = 30;
+
+    for (int i = 0; i < 3; i++) {
+        printf("%s\n", strategy_names[i]);
+        run_allocation_test(fit_strategies[i], min_size, max_size);
+    }
 
     printf("Tests succeeded.\n");
     return 0;
 }
+

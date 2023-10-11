@@ -6,7 +6,7 @@
 #include "../headers/mem_os.h"
 #include "../src/mem.c"
 
-#define NB_MAX_STORES 1000
+#define NB_MAX_STORES 100000
 
 typedef struct {
     void* address;
@@ -31,6 +31,14 @@ void* allocate_and_track(size_t size, AllocationRecord* table, size_t* table_siz
     return allocated_mem;
 }
 
+
+/**
+ * Effectue des allocations de mémoire de petites tailles et mesure les performances.
+ * 
+ * Description : Cette fonction effectue des allocations de mémoire de petites tailles
+ * (entre min et max bytes) de manière aléatoire. Elle mesure le temps d'exécution et
+ * affiche le rapport de mémoire allouée par rapport à la taille totale de la mémoire.
+ */
 void small_size_allocations() {
     size_t total_allocated = 0;
     size_t mem_size = mem_space_get_size();
@@ -63,6 +71,13 @@ void small_size_allocations() {
 
 }
 
+/**
+ * Effectue des allocations de mémoire de grandes tailles et mesure les performances.
+ * 
+ * Description : Cette fonction effectue des allocations de mémoire de grandes tailles
+ * (entre min et max bytes) de manière aléatoire. Elle mesure le temps d'exécution et
+ * affiche le rapport de mémoire allouée par rapport à la taille totale de la mémoire.
+ */
 void big_size_allocations() {
     size_t total_allocated = 0;
     size_t mem_size = mem_space_get_size();
@@ -95,7 +110,7 @@ void big_size_allocations() {
 }
 
 
-int main(int argc, char *argv[])
+int main()
 {
     mem_init();
 

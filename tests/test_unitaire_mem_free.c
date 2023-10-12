@@ -37,19 +37,21 @@ void test_free_valid_zone()
 }
 
 /**
- * Teste la fusion de blocs mémoire libérés par la fonction mem_free.
+ * Test de la fusion des blocs mémoire libérés par la fonction mem_free.
  * 
  * Description : Cette fonction teste la fonction mem_free en allouant deux blocs de mémoire
- * de taille 64 octets. Ensuite, elle libère le premier bloc suivi d'une portion du second bloc.
- * Enfin, elle alloue un nouveau bloc de mémoire et vérifie que le nouveau pointeur n'est pas NULL
- * et qu'il est égal au pointeur du premier bloc initial, montrant ainsi que les blocs ont été fusionnés.
+ * de taille 32 octets. Ensuite, elle libère le premier bloc suivi du deuxième bloc.
+ * Puis, elle alloue un nouveau bloc de mémoire de taille 64 octets.
+ * Elle vérifie que le nouveau pointeur n'est pas NULL et qu'il est égal au pointeur du premier bloc initial,
+ * montrant ainsi que les blocs ont été fusionnés.
  */
 void test_free_fusion()
 {
-    void *ptr1 = mem_alloc(64);
+    void *ptr1 = mem_alloc(32);
+    void *ptr2 = mem_alloc(32);
 
     mem_free(ptr1);
-    mem_free((char *)ptr1 + 32);
+    mem_free(ptr2);
 
     void *new_ptr = mem_alloc(64);
     

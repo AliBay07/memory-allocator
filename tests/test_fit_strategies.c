@@ -31,34 +31,46 @@ void* allocate_and_track(size_t size, AllocationRecord* table, size_t* table_siz
     return allocated_mem;
 }
 
+void initialize_memory(size_t size) {
+    void* allocated_blocks[NB_MAX_STORES];
+    int block_index = 0;
+
+    while (1) {
+        void* allocated_block = mem_alloc(size);
+        if (allocated_block == NULL) {
+            break;
+        }
+        allocated_blocks[block_index++] = allocated_block;
+    }
+
+    for (int i = 1; i < block_index; i += 2) {
+        mem_free(allocated_blocks[i]);
+    }
+}
+
 /**
  * Exécute un test d'allocation de mémoire avec une stratégie de placement donnée.
- * 
- * Paramètres : 
+ *
+ * Paramètres :
  *   - fit_strategy (pointeur vers la stratégie de placement de mémoire)
  *   - min (taille minimale de l'allocation)
  *   - max (taille maximale de l'allocation)
- * 
- * Description : Cette fonction exécute un test d'allocation de mémoire en utilisant la
- * stratégie de placement spécifiée. Elle alloue de manière aléatoire des zones mémoire
- * de tailles comprises entre "min" et "max," en suivant la stratégie de placement donnée.
- * Les allocations et les libérations sont suivies et enregistrées dans la table "allocation_table."
- * La fonction mesure le temps d'exécution du test et affiche le rapport mémoire utilisée sur
- * la mémoire totale disponible, ainsi que le temps écoulé.
  */
 void run_allocation_test(mem_fit_function_t* fit_strategy, int min, int max) {
     size_t total_allocated = 0;
-    size_t mem_size = mem_space_get_size();
 
     AllocationRecord allocation_table[NB_MAX_STORES];
     size_t table_size = 0;
 
-    clock_t start_time = clock();
-
     mem_set_fit_handler(fit_strategy);
 
+    size_t alloc_size = generate_random_int(min, max);
+    initialize_memory(alloc_size);
+
+    clock_t start_time = clock();
+
     while (1) {
-        size_t alloc_size = generate_random_int(min, max);
+        alloc_size = generate_random_int(min, max);
 
         void* allocated_mem = allocate_and_track(alloc_size, allocation_table, &table_size, &total_allocated);
         if (allocated_mem == NULL) {
@@ -73,12 +85,10 @@ void run_allocation_test(mem_fit_function_t* fit_strategy, int min, int max) {
     clock_t end_time = clock();
     double execution_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
-    printf("Memory ratio when allocating sizes between %d and %d bytes: %f\n", min, max, (double)total_allocated / mem_size);
     printf("Time taken: %.8f seconds\n\n", execution_time);
 }
 
 int main() {
-    mem_init();
 
     mem_fit_function_t* fit_strategies[] = {mem_first_fit, mem_best_fit, mem_worst_fit};
     const char* strategy_names[] = {"First Fit Strategy", "Best Fit Strategy", "Worst Fit Strategy"};
@@ -86,11 +96,11 @@ int main() {
     int max_size = 30;
 
     for (int i = 0; i < 3; i++) {
+        mem_init();
         printf("%s\n", strategy_names[i]);
         run_allocation_test(fit_strategies[i], min_size, max_size);
     }
 
-    printf("Tests succeeded.\n");
+    printf("Tests successed\n");
     return 0;
 }
-

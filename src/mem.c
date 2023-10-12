@@ -90,11 +90,6 @@ void *mem_alloc(size_t size)
 
     size_t total_size = size + sizeof(struct bb);
 
-    if (total_size < sizeof(struct fb))
-    {
-        total_size = sizeof(struct fb);
-    }
-
     struct fb *previous_block = (struct fb *)(*get_correct_block)((mem_free_block_t *)info->first, total_size);
 
     if (previous_block == NULL || previous_block->next == NULL || previous_block->next->free_size < total_size)
@@ -156,14 +151,8 @@ size_t mem_get_size(void *zone)
             tmp_bb = (struct bb *)(tmp_bb + tmp_bb->busy_size) + sizeof(struct bb);
             tmp_fb = tmp_fb->next;
         }
-        if (bb_ptr->busy_size < sizeof(struct fb))
-        {
-            taille = sizeof(struct fb);
-        }
-        else
-        {
-            taille = bb_ptr->busy_size;
-        }
+
+        taille = bb_ptr->busy_size;
         return taille;
     }
     else
